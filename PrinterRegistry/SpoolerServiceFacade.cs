@@ -55,5 +55,11 @@ namespace PrintIpUpdater
             Start();
         }
 
+        public static void StopAndClearSpoolCache()
+        {
+            Stop();
+            ClearSpoolCache();
+        }
+
     }
 }

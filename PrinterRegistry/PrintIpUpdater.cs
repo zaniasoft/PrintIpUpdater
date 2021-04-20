@@ -18,6 +18,8 @@ namespace PrintIpUpdater
         const int ERROR_READ_REGISTRY = 2;
         const int ERROR_WRITE_REGISTRY = 3;
         const int ERROR_RESTART_SPOOLER_SERVICE = 4;
+        const int ERROR_STOP_SPOOLER_SERVICE = 5;
+        const int ERROR_START_SPOOLER_SERVICE = 6;
 
         private static readonly string REGISTRY_KEY_BASE_PATH = "SYSTEM\\ControlSet001\\Control\\Print\\Monitors\\";
 
@@ -87,53 +89,88 @@ namespace PrintIpUpdater
             if (options.Mode.Equals("Restart"))
             {
                 Console.Write("Only Restarting spooler..");
-                SpoolerServiceFacade.Restart();
-                Console.WriteLine("Done");
+                try
+                {
+                    SpoolerServiceFacade.Restart();
+                    Console.WriteLine("Done");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error : " + ex.Message + " (" + ex.InnerException + ")");
+                    Environment.Exit(ERROR_RESTART_SPOOLER_SERVICE);
+                }
                 Environment.Exit(SUCCESS);
             }
 
             if (!currentIpAddrValue.Equals(options.Ipaddr))
             {
-                Console.Write("Changing IP address to " + options.Ipaddr + "..");
-
-                try
-                {
-                    Write("IPAddress", options.Ipaddr);
-                }
-                catch (UnauthorizedAccessException ex)
-                {
-                    Console.WriteLine("Failed");
-                    Console.WriteLine("Error : " + ex.Message);
-                    Console.WriteLine("Try to run as administrator");
-
-                    Environment.Exit(ERROR_WRITE_REGISTRY);
-                }
-
-                string ipAddrValue = Read("IPAddress");
-                if (String.Equals(ipAddrValue, options.Ipaddr))
-                {
-                    Console.WriteLine("Done");
-                }
-                else
-                {
-                    Console.WriteLine("Error : Failed to write ip address");
-                    Environment.Exit(ERROR_WRITE_REGISTRY);
-                }
-
+                List<String> ipaddr = new List<String>();
                 if (options.Mode.Equals("Normal"))
                 {
-                    Console.Write("Restarting spooler..");
+                    ipaddr.Add("127.0.0.1");
+                }
+                ipaddr.Add(options.Ipaddr);
+
+                ipaddr.ForEach(delegate (String ip)
+                {
+                    // Stop Spooler service
+                    if (options.Mode.Equals("Normal"))
+                    {
+                        Console.Write("Stopping spooler service..");
+                        try
+                        {
+                            SpoolerServiceFacade.StopAndClearSpoolCache();
+                            Console.WriteLine("Done");
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine("Error : " + ex.Message + " (" + ex.InnerException + ")");
+                            Environment.Exit(ERROR_STOP_SPOOLER_SERVICE);
+                        }
+                    }
+
+                    // Change IP address
+                    Console.Write("Changing IP address to " + ip + "..");
                     try
                     {
-                        SpoolerServiceFacade.Restart();
+                        Write("IPAddress", ip);
+                    }
+                    catch (UnauthorizedAccessException ex)
+                    {
+                        Console.WriteLine("Failed");
+                        Console.WriteLine("Error : " + ex.Message);
+                        Console.WriteLine("Try to run as administrator");
+                        Environment.Exit(ERROR_WRITE_REGISTRY);
+                    }
+
+                    // Verify IP address
+                    string ipAddrValue = Read("IPAddress");
+                    if (String.Equals(ipAddrValue, ip))
+                    {
                         Console.WriteLine("Done");
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        Console.WriteLine("Error : " + ex.Message + " (" + ex.InnerException + ")");
-                        Environment.Exit(ERROR_RESTART_SPOOLER_SERVICE);
+                        Console.WriteLine("Error : Failed to write ip address");
+                        Environment.Exit(ERROR_WRITE_REGISTRY);
                     }
-                }
+
+                    // Start Spooler service
+                    if (options.Mode.Equals("Normal"))
+                    {
+                        Console.Write("Starting spooler..");
+                        try
+                        {
+                            SpoolerServiceFacade.Start();
+                            Console.WriteLine("Done");
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine("Error : " + ex.Message + " (" + ex.InnerException + ")");
+                            Environment.Exit(ERROR_START_SPOOLER_SERVICE);
+                        }
+                    }
+                });
             }
             Environment.Exit(SUCCESS);
         }
