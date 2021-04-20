@@ -16,19 +16,21 @@ namespace PrintIpUpdater
         readonly static ServiceController service = new ServiceController("Spooler");
         public static void Stop()
         {
-            // Stop the spooler.
-            if ((!service.Status.Equals(ServiceControllerStatus.Stopped)) &&
-                (!service.Status.Equals(ServiceControllerStatus.StopPending)))
+            // Stop the spooler if it is not stopped.
+            if ((!service.Status.Equals(ServiceControllerStatus.Stopped)) && (!service.Status.Equals(ServiceControllerStatus.StopPending)))
             {
                 service.Stop();
-                service.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(8));
             }
+            service.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(8));
         }
 
         public static void Start()
         {
-            // Start the spooler.
-            service.Start();
+            // Start the spooler if it is not running.
+            if ((!service.Status.Equals(ServiceControllerStatus.Running)) && (!service.Status.Equals(ServiceControllerStatus.StartPending)))
+            {
+                service.Start();
+            }
             service.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(8));
         }
 
