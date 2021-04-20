@@ -17,6 +17,7 @@ namespace PrintIpUpdater
         const int ERROR_COMMAND_ARGS = 1;
         const int ERROR_READ_REGISTRY = 2;
         const int ERROR_WRITE_REGISTRY = 3;
+        const int ERROR_RESTART_SPOOLER_SERVICE = 4;
 
         private static readonly string REGISTRY_KEY_BASE_PATH = "SYSTEM\\ControlSet001\\Control\\Print\\Monitors\\";
 
@@ -122,8 +123,16 @@ namespace PrintIpUpdater
                 if (options.Mode.Equals("Normal"))
                 {
                     Console.Write("Restarting spooler..");
-                    SpoolerServiceFacade.Restart();
-                    Console.WriteLine("Done");
+                    try
+                    {
+                        SpoolerServiceFacade.Restart();
+                        Console.WriteLine("Done");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Error : " + ex.Message + " (" + ex.InnerException + ")");
+                        Environment.Exit(ERROR_RESTART_SPOOLER_SERVICE);
+                    }
                 }
             }
             Environment.Exit(SUCCESS);

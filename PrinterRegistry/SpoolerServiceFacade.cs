@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.ServiceProcess;
 
 // <copyright file="SpoolerService.cs" company="">
@@ -20,7 +21,7 @@ namespace PrintIpUpdater
                 (!service.Status.Equals(ServiceControllerStatus.StopPending)))
             {
                 service.Stop();
-                service.WaitForStatus(ServiceControllerStatus.Stopped);
+                service.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(8));
             }
         }
 
@@ -28,7 +29,7 @@ namespace PrintIpUpdater
         {
             // Start the spooler.
             service.Start();
-            service.WaitForStatus(ServiceControllerStatus.Running);
+            service.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(8));
         }
 
         public static void ClearSpoolCache()
